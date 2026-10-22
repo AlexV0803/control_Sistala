@@ -154,7 +154,7 @@
     btnConnect.addEventListener('click', async () => {
         try {
             port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 });
+            await port.open({ baudRate: 2400 });
             
             // TRUCO DE IGNICIÓN: Apaga y prende la señal DTR para obligar a la placa a reiniciarse y saludar
             try {
