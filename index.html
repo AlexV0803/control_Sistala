@@ -19,25 +19,24 @@
         
         #status-text { font-weight: 600; font-size: 1.1em; margin: 10px 0; color: #333; min-height: 24px; }
         
-        
+        /* Caja de la Clave Dinámica */
         #clave-display { display: none; background: #fff4f4; border: 2px solid #d32f2f; color: #d32f2f; font-size: 1.8em; font-weight: bold; padding: 15px; border-radius: 8px; margin: 15px 0; letter-spacing: 2px; }
         #clave-label { font-size: 0.4em; color: #555; display: block; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
 
-       
+        /* Teclado Matricial 4x4 */
         .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; display: none; background: #222; padding: 12px; border-radius: 10px; }
         .keypad button { padding: 18px 0; font-size: 20px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; color: white; transition: 0.1s; }
         .keypad button:active { transform: scale(0.95); }
         
-      
-        .key-num { background: #1976d2; } /* Azul para números */
+        .key-num { background: #1976d2; } 
         .key-num:active { background: #1565c0; }
-        .key-alpha { background: #d32f2f; } /* Rojo para letras */
+        .key-alpha { background: #d32f2f; } 
         .key-alpha:active { background: #b71c1c; }
-        .key-sym { background: #f57c00; } /* Naranja para símbolos */
+        .key-sym { background: #f57c00; } 
         .key-sym:active { background: #e65100; }
         
-     
-        #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 100px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 20px; border-radius: 8px; border: 1px solid #000; }
+        /* Consola de diagnóstico (Oculta por defecto) */
+        #terminal { display: none; background: #1e1e1e; color: #00ff00; padding: 12px; height: 140px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 20px; border-radius: 8px; border: 1px solid #000; }
     </style>
 </head>
 <body>
@@ -60,7 +59,7 @@
         <span id="clave-valor">----</span>
     </div>
 
-    <!-- Teclado Matricial 4x4 idéntico al físico -->
+    <!-- Teclado Matricial 4x4 -->
     <div id="keypad-container" class="keypad">
         <button class="key key-num" data-val="1">1</button>
         <button class="key key-num" data-val="2">2</button>
@@ -83,7 +82,7 @@
         <button class="key key-alpha" data-val="D">D</button>
     </div>
 
-    <!-- Consola (se puede ocultar después) -->
+    <!-- Consola dinámica (aparece solo en modo técnico) -->
     <div id="terminal"></div>
 </div>
 
@@ -111,7 +110,6 @@
         await writer.write(data);
     }
     
-    // Asignar evento a cada tecla del pad 4x4
     document.querySelectorAll('.key').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const val = e.target.getAttribute('data-val');
@@ -123,8 +121,9 @@
         // 1. Arranque de sistema
         if(line.includes("[INICIO]")) {
             statusText.style.display = 'block';
-            keypadContainer.style.display = 'grid'; // Mostrar pad 4x4
-            claveDisplay.style.display = 'none'; // Ocultar clave anterior
+            keypadContainer.style.display = 'grid'; 
+            claveDisplay.style.display = 'none'; 
+            terminal.style.display = 'none'; // Ocultar terminal si se reinicia al menú principal
             statusText.innerText = "Sistema Listo. Ingrese comando.";
             statusText.style.color = "#333";
             
@@ -139,15 +138,12 @@
             }
         }
 
-        // 2. Recepción de la Clave
+        // 2. Recepción de la Clave para Monitoreo
         if (line.includes("[CLAVE]")) {
             const clave = line.split("]")[1].trim();
             claveValor.innerText = clave;
-            claveDisplay.style.display = 'block'; // Mostrar la caja grande roja
+            claveDisplay.style.display = 'block'; 
             statusText.innerText = "Clave generada. Ingrese OTP.";
-            
-            // Si tu Arduino requiere que se envíe una 'B' para pasar a modo OTP, 
-            // este comando lo hace automáticamente medio segundo después:
             setTimeout(() => sendCmd('B'), 500); 
         }
 
@@ -161,7 +157,13 @@
             statusText.innerText = `Ingresando: ${pass}`;
         }
 
-        // 4. Resultados
+        // 4. Modo Técnico / Diagnóstico detectado -> Mostrar Terminal automáticamente
+        if (line.includes("[DIAG]") || line.includes("--- MODO TECNICO") || line.includes("[CLAVE_DIAG]")) {
+            terminal.style.display = 'block'; // Mostrar la consola de configuración
+            statusText.innerText = "Modo Técnico Activo";
+        }
+
+        // 5. Resultados
         if (line.includes("[EXITO]")) {
             statusText.style.color = "#28a745";
             statusText.innerText = line.split("]")[1].trim();
@@ -175,7 +177,6 @@
 
     btnConnect.addEventListener('click', async () => {
         try {
-            
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 2400 });
             
