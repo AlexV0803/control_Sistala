@@ -19,16 +19,16 @@
         
         #status-text { font-weight: 600; font-size: 1.1em; margin: 10px 0; color: #333; min-height: 24px; }
         
-        /* Caja de la Clave Dinámica */
+        
         #clave-display { display: none; background: #fff4f4; border: 2px solid #d32f2f; color: #d32f2f; font-size: 1.8em; font-weight: bold; padding: 15px; border-radius: 8px; margin: 15px 0; letter-spacing: 2px; }
         #clave-label { font-size: 0.4em; color: #555; display: block; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
 
-        /* Teclado Matricial 4x4 */
+       
         .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; display: none; background: #222; padding: 12px; border-radius: 10px; }
         .keypad button { padding: 18px 0; font-size: 20px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; color: white; transition: 0.1s; }
         .keypad button:active { transform: scale(0.95); }
         
-        /* Colores estilo membrana */
+      
         .key-num { background: #1976d2; } /* Azul para números */
         .key-num:active { background: #1565c0; }
         .key-alpha { background: #d32f2f; } /* Rojo para letras */
@@ -36,7 +36,7 @@
         .key-sym { background: #f57c00; } /* Naranja para símbolos */
         .key-sym:active { background: #e65100; }
         
-        /* Consola de diagnóstico */
+     
         #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 100px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 20px; border-radius: 8px; border: 1px solid #000; }
     </style>
 </head>
@@ -175,7 +175,7 @@
 
     btnConnect.addEventListener('click', async () => {
         try {
-            // RECUERDA: La velocidad es de 2400 como lo configuraste en Arduino
+            
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 2400 });
             
