@@ -6,25 +6,38 @@
     <title>Segumafra - Control USB</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 400px; background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); text-align: center; }
+        .container { width: 100%; max-width: 420px; background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); text-align: center; }
         
-        #logo-container { margin-bottom: 15px; }
-        #logo-container img { max-width: 180px; margin-bottom: 10px; }
-        #welcome-text { font-size: 1.6em; font-weight: bold; color: #0056b3; margin-bottom: 2px; }
+        #logo-container { margin-bottom: 10px; }
+        #logo-container img { max-width: 160px; margin-bottom: 5px; }
+        #welcome-text { font-size: 1.4em; font-weight: bold; color: #0056b3; margin-bottom: 2px; }
         #cliente-info { font-size: 0.9em; color: #444; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-top: 5px; }
         #modo-info { display: inline-block; background: #e9ecef; color: #333; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-top: 8px; letter-spacing: 0.5px; }
         
-        .btn { display: inline-block; width: 100%; padding: 16px; margin: 8px 0; font-size: 16px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .btn-blue { background: #0056b3; }
-        .btn-green { background: #28a745; }
-        .btn-red { background: #dc3545; }
+        .btn-connect { display: inline-block; width: 100%; padding: 16px; margin: 15px 0; font-size: 16px; font-weight: bold; color: white; background: #0056b3; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .btn-connect:active { background: #004494; }
         
-        #status-text { font-weight: 600; font-size: 1.1em; margin: 15px 0; color: #333; min-height: 24px; }
+        #status-text { font-weight: 600; font-size: 1.1em; margin: 10px 0; color: #333; min-height: 24px; }
         
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; display: none; }
-        .keypad button { padding: 15px; font-size: 22px; font-weight: bold; border-radius: 8px; border: 1px solid #ddd; background: #f8f9fa; cursor: pointer; color: #333;}
+        /* Caja de la Clave Dinámica */
+        #clave-display { display: none; background: #fff4f4; border: 2px solid #d32f2f; color: #d32f2f; font-size: 1.8em; font-weight: bold; padding: 15px; border-radius: 8px; margin: 15px 0; letter-spacing: 2px; }
+        #clave-label { font-size: 0.4em; color: #555; display: block; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+
+        /* Teclado Matricial 4x4 */
+        .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; display: none; background: #222; padding: 12px; border-radius: 10px; }
+        .keypad button { padding: 18px 0; font-size: 20px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; color: white; transition: 0.1s; }
+        .keypad button:active { transform: scale(0.95); }
         
-        #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 120px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 25px; border-radius: 8px; border: 1px solid #000; }
+        /* Colores estilo membrana */
+        .key-num { background: #1976d2; } /* Azul para números */
+        .key-num:active { background: #1565c0; }
+        .key-alpha { background: #d32f2f; } /* Rojo para letras */
+        .key-alpha:active { background: #b71c1c; }
+        .key-sym { background: #f57c00; } /* Naranja para símbolos */
+        .key-sym:active { background: #e65100; }
+        
+        /* Consola de diagnóstico */
+        #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 100px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 20px; border-radius: 8px; border: 1px solid #000; }
     </style>
 </head>
 <body>
@@ -37,31 +50,40 @@
         <div id="modo-info" style="display:none;">MODO: --</div>
     </div>
 
-    <button id="btn-connect" class="btn btn-blue">🔌 Conectar Dispositivo USB</button>
+    <button id="btn-connect" class="btn-connect">🔌 Conectar Dispositivo USB</button>
 
     <div id="status-text" style="display:none;">Sincronizando...</div>
 
-    <div id="controls" style="display:none;">
-        <button id="btn-abrir" class="btn btn-green">ACCIONAR APERTURA</button>
-        <button id="btn-cerrar" class="btn btn-red">ACCIONAR CIERRE</button>
+    <!-- Módulo visible para dictar clave a monitoreo -->
+    <div id="clave-display">
+        <span id="clave-label">Clave para Monitoreo:</span>
+        <span id="clave-valor">----</span>
     </div>
 
+    <!-- Teclado Matricial 4x4 idéntico al físico -->
     <div id="keypad-container" class="keypad">
-        <button class="key" data-val="1">1</button>
-        <button class="key" data-val="2">2</button>
-        <button class="key" data-val="3">3</button>
-        <button class="key" data-val="4">4</button>
-        <button class="key" data-val="5">5</button>
-        <button class="key" data-val="6">6</button>
-        <button class="key" data-val="7">7</button>
-        <button class="key" data-val="8">8</button>
-        <button class="key" data-val="9">9</button>
-        <button class="key" style="background:#ffe6e6; color:#d32f2f;" id="btn-borrar">C</button>
-        <button class="key" data-val="0">0</button>
-        <button class="key" style="background:#e6ffe6; color:#2e7d32;" id="btn-enviar">OK</button>
+        <button class="key key-num" data-val="1">1</button>
+        <button class="key key-num" data-val="2">2</button>
+        <button class="key key-num" data-val="3">3</button>
+        <button class="key key-alpha" data-val="A">A</button>
+        
+        <button class="key key-num" data-val="4">4</button>
+        <button class="key key-num" data-val="5">5</button>
+        <button class="key key-num" data-val="6">6</button>
+        <button class="key key-alpha" data-val="B">B</button>
+        
+        <button class="key key-num" data-val="7">7</button>
+        <button class="key key-num" data-val="8">8</button>
+        <button class="key key-num" data-val="9">9</button>
+        <button class="key key-alpha" data-val="C">C</button>
+        
+        <button class="key key-sym" data-val="*">*</button>
+        <button class="key key-num" data-val="0">0</button>
+        <button class="key key-sym" data-val="#">#</button>
+        <button class="key key-alpha" data-val="D">D</button>
     </div>
 
-    <!-- Ahora la consola mostrará todo el tráfico en bruto -->
+    <!-- Consola (se puede ocultar después) -->
     <div id="terminal"></div>
 </div>
 
@@ -74,8 +96,9 @@
     const statusText = document.getElementById('status-text');
     const clienteInfo = document.getElementById('cliente-info');
     const modoInfo = document.getElementById('modo-info');
-    const controls = document.getElementById('controls');
     const keypadContainer = document.getElementById('keypad-container');
+    const claveDisplay = document.getElementById('clave-display');
+    const claveValor = document.getElementById('clave-valor');
 
     function log(msg) {
         terminal.innerHTML += `<div>${msg}</div>`;
@@ -87,62 +110,61 @@
         const data = new TextEncoder().encode(char);
         await writer.write(data);
     }
-
-    document.getElementById('btn-abrir').addEventListener('click', () => sendCmd('A'));
-    document.getElementById('btn-cerrar').addEventListener('click', () => sendCmd('C'));
     
+    // Asignar evento a cada tecla del pad 4x4
     document.querySelectorAll('.key').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const val = e.target.getAttribute('data-val');
             if (val) sendCmd(val);
         });
     });
-    document.getElementById('btn-borrar').addEventListener('click', () => sendCmd('C'));
-    document.getElementById('btn-enviar').addEventListener('click', () => sendCmd('D'));
 
     function processSerialLine(line) {
+        // 1. Arranque de sistema
         if(line.includes("[INICIO]")) {
             statusText.style.display = 'block';
-            controls.style.display = 'block';
-            keypadContainer.style.display = 'none';
-            statusText.innerText = "Sistema Listo";
+            keypadContainer.style.display = 'grid'; // Mostrar pad 4x4
+            claveDisplay.style.display = 'none'; // Ocultar clave anterior
+            statusText.innerText = "Sistema Listo. Ingrese comando.";
             statusText.style.color = "#333";
             
             if (line.includes("Cliente:")) {
                 let partesCliente = line.split("Cliente: ")[1].split(" | ")[0];
                 clienteInfo.innerText = "UNIDAD: " + partesCliente;
             }
-
             if (line.includes("Modo:")) {
                 let modoActual = line.split("Modo: ")[1].trim();
                 modoInfo.innerText = "MODO: " + modoActual;
                 modoInfo.style.display = 'inline-block';
-                modoInfo.style.background = (modoActual === "CHAPA") ? "#d4edda" : "#cce5ff";
-                modoInfo.style.color = (modoActual === "CHAPA") ? "#155724" : "#004085";
             }
         }
 
+        // 2. Recepción de la Clave
         if (line.includes("[CLAVE]")) {
             const clave = line.split("]")[1].trim();
-            statusText.innerText = `Clave Generada: ${clave}`;
-            controls.style.display = 'none';
+            claveValor.innerText = clave;
+            claveDisplay.style.display = 'block'; // Mostrar la caja grande roja
+            statusText.innerText = "Clave generada. Ingrese OTP.";
+            
+            // Si tu Arduino requiere que se envíe una 'B' para pasar a modo OTP, 
+            // este comando lo hace automáticamente medio segundo después:
             setTimeout(() => sendCmd('B'), 500); 
         }
 
+        // 3. Captura de OTP
         if (line.includes("[INPUT_OTP]")) {
-            statusText.innerText = "Ingrese Clave Dinámica (OTP)";
-            keypadContainer.style.display = 'grid';
+            statusText.innerText = "Ingrese Clave Dinámica (OTP) y presione D";
         }
 
         if (line.includes("[INPUT]")) {
             const pass = line.split("]")[1].trim();
-            statusText.innerText = `OTP: ${pass}`;
+            statusText.innerText = `OTP ingresado: ${pass}`;
         }
 
+        // 4. Resultados
         if (line.includes("[EXITO]")) {
             statusText.style.color = "#28a745";
             statusText.innerText = line.split("]")[1].trim();
-            keypadContainer.style.display = 'none';
         }
         
         if (line.includes("[ERROR") || line.includes("[BLOQUEO]")) {
@@ -153,17 +175,15 @@
 
     btnConnect.addEventListener('click', async () => {
         try {
+            // RECUERDA: La velocidad es de 2400 como lo configuraste en Arduino
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 2400 });
             
-            // TRUCO DE IGNICIÓN: Apaga y prende la señal DTR para obligar a la placa a reiniciarse y saludar
             try {
                 await port.setSignals({ dataTerminalReady: false });
                 await new Promise(r => setTimeout(r, 150));
                 await port.setSignals({ dataTerminalReady: true });
-            } catch(e) {
-                log("Aviso: Señales DTR no soportadas en este dispositivo.");
-            }
+            } catch(e) {}
 
             writer = port.writable.getWriter();
             const decoder = new TextDecoderStream();
@@ -173,16 +193,13 @@
 
             btnConnect.style.display = 'none';
             statusText.style.display = 'block';
-            log("Conectado. Forzando reinicio de unidad...");
+            log("Conectado. Leyendo...");
 
             let buffer = "";
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) { reader.releaseLock(); break; }
                 if (value) {
-                    // IMPRIMIR DATOS CRUDOS (En gris) PARA DIAGNOSTICO
-                    log("<span style='color:#888;'>[RECIBIENDO]: " + value.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + "</span>");
-                    
                     buffer += value;
                     let lines = buffer.split('\n');
                     buffer = lines.pop(); 
@@ -195,7 +212,7 @@
                 }
             }
         } catch (err) {
-            log("Error de conexión: " + err);
+            log("Error: " + err);
         }
     });
 </script>
