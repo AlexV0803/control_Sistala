@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Segumafra - Control USB</title>
+    <title>Segumafra - Control Bluetooth</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 420px; background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); text-align: center; }
@@ -43,13 +43,13 @@
 
 <div class="container">
     <div id="logo-container">
-       <img id="client-logo" src="logo_segumafra.jpg" alt="Segumafra Logo">
+        <img id="client-logo" src="logo_segumafra.jpg" alt="Segumafra Logo">
         <div id="welcome-text">¡Bienvenido!</div>
         <div id="cliente-info">Sistemas de Alta Tecnología</div>
         <div id="modo-info" style="display:none;">MODO: --</div>
     </div>
 
-    <button id="btn-connect" class="btn-connect">🔌 Conectar Dispositivo USB</button>
+    <button id="btn-connect" class="btn-connect">📶 Conectar Dispositivo Bluetooth</button>
 
     <div id="status-text" style="display:none;">Sincronizando...</div>
 
@@ -87,8 +87,9 @@
 </div>
 
 <script>
-    let port;
-    let writer;
+    let bluetoothDevice;
+    let bluetoothServer;
+    let btCharacteristic;
 
     const btnConnect = document.getElementById('btn-connect');
     const terminal = document.getElementById('terminal');
@@ -105,9 +106,13 @@
     }
 
     async function sendCmd(char) {
-        if (!writer) return;
-        const data = new TextEncoder().encode(char);
-        await writer.write(data);
+        if (!btCharacteristic) return;
+        try {
+            const data = new TextEncoder().encode(char);
+            await btCharacteristic.writeValue(data);
+        } catch (err) {
+            log("Error al enviar: " + err);
+        }
     }
     
     document.querySelectorAll('.key').forEach(btn => {
@@ -118,12 +123,11 @@
     });
 
     function processSerialLine(line) {
-        // 1. Arranque de sistema
         if(line.includes("[INICIO]")) {
             statusText.style.display = 'block';
             keypadContainer.style.display = 'grid'; 
             claveDisplay.style.display = 'none'; 
-            terminal.style.display = 'none'; // Ocultar terminal si se reinicia al menú principal
+            terminal.style.display = 'none'; 
             statusText.innerText = "Sistema Listo. Ingrese comando.";
             statusText.style.color = "#333";
             
@@ -138,7 +142,6 @@
             }
         }
 
-        // 2. Recepción de la Clave para Monitoreo
         if (line.includes("[CLAVE]")) {
             const clave = line.split("]")[1].trim();
             claveValor.innerText = clave;
@@ -147,7 +150,6 @@
             setTimeout(() => sendCmd('B'), 500); 
         }
 
-        // 3. Captura de OTP
         if (line.includes("[INPUT_OTP]")) {
             statusText.innerText = "Ingrese Clave Dinámica (OTP) y presione D";
         }
@@ -157,13 +159,11 @@
             statusText.innerText = `Ingresando: ${pass}`;
         }
 
-        // 4. Modo Técnico / Diagnóstico detectado -> Mostrar Terminal automáticamente
         if (line.includes("[DIAG]") || line.includes("--- MODO TECNICO") || line.includes("[CLAVE_DIAG]")) {
-            terminal.style.display = 'block'; // Mostrar la consola de configuración
+            terminal.style.display = 'block'; 
             statusText.innerText = "Modo Técnico Activo";
         }
 
-        // 5. Resultados
         if (line.includes("[EXITO]")) {
             statusText.style.color = "#28a745";
             statusText.innerText = line.split("]")[1].trim();
@@ -177,42 +177,37 @@
 
     btnConnect.addEventListener('click', async () => {
         try {
-            port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 2400 });
+            statusText.style.display = 'block';
+            statusText.innerText = "Buscando Bluetooth...";
             
-            try {
-                await port.setSignals({ dataTerminalReady: false });
-                await new Promise(r => setTimeout(r, 150));
-                await port.setSignals({ dataTerminalReady: true });
-            } catch(e) {}
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb', '00001101-0000-1000-8000-00805f9b34fb']
+            });
 
-            writer = port.writable.getWriter();
-            const decoder = new TextDecoderStream();
-            const inputDone = port.readable.pipeTo(decoder.writable);
-            const inputStream = decoder.readable;
-            const reader = inputStream.getReader();
+            statusText.innerText = "Conectando al HC-05...";
+            bluetoothServer = await bluetoothDevice.gatt.connect();
+            
+            // Intentar obtener servicio y característica serial estándar
+            const service = await bluetoothServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+            btCharacteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+
+            // Habilitar notificaciones de lectura desde el Arduino
+            await btCharacteristic.startNotifications();
+            btCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+                const value = new TextDecoder().decode(event.target.value);
+                log("> " + value.trim());
+                processSerialLine(value.trim());
+            });
 
             btnConnect.style.display = 'none';
-            statusText.style.display = 'block';
-            log("Conectado. Leyendo...");
+            statusText.innerText = "¡Conectado por Bluetooth!";
+            statusText.style.color = "#28a745";
+            log("Bluetooth conectado exitosamente.");
 
-            let buffer = "";
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) { reader.releaseLock(); break; }
-                if (value) {
-                    buffer += value;
-                    let lines = buffer.split('\n');
-                    buffer = lines.pop(); 
-                    for (let line of lines) {
-                        if(line.trim() !== "") {
-                            log("> " + line.trim());
-                            processSerialLine(line.trim());
-                        }
-                    }
-                }
-            }
         } catch (err) {
+            statusText.style.color = "#dc3545";
+            statusText.innerText = "Error de conexión";
             log("Error: " + err);
         }
     });
