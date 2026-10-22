@@ -8,37 +8,28 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 400px; background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); text-align: center; }
         
-        /* Encabezado Visual */
         #logo-container { margin-bottom: 15px; }
         #logo-container img { max-width: 180px; margin-bottom: 10px; }
         #welcome-text { font-size: 1.6em; font-weight: bold; color: #0056b3; margin-bottom: 2px; }
         #cliente-info { font-size: 0.9em; color: #444; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-top: 5px; }
         #modo-info { display: inline-block; background: #e9ecef; color: #333; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; margin-top: 8px; letter-spacing: 0.5px; }
         
-        /* Botones Principales */
         .btn { display: inline-block; width: 100%; padding: 16px; margin: 8px 0; font-size: 16px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .btn-blue { background: #0056b3; }
-        .btn-blue:active { background: #004494; }
         .btn-green { background: #28a745; }
-        .btn-green:active { background: #218838; }
         .btn-red { background: #dc3545; }
-        .btn-red:active { background: #c82333; }
         
         #status-text { font-weight: 600; font-size: 1.1em; margin: 15px 0; color: #333; min-height: 24px; }
         
-        /* Teclado Numérico (OTP) */
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; display: none; }
         .keypad button { padding: 15px; font-size: 22px; font-weight: bold; border-radius: 8px; border: 1px solid #ddd; background: #f8f9fa; cursor: pointer; color: #333;}
-        .keypad button:active { background: #e2e6ea; }
         
-        /* Consola de diagnóstico */
-        #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 100px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 25px; border-radius: 8px; border: 1px solid #000; }
+        #terminal { background: #1e1e1e; color: #00ff00; padding: 12px; height: 120px; overflow-y: auto; text-align: left; font-family: monospace; font-size: 11px; margin-top: 25px; border-radius: 8px; border: 1px solid #000; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Pantalla de Bienvenida Fija -->
     <div id="logo-container">
         <img id="client-logo" src="logo_segumafra.png" alt="Segumafra Logo">
         <div id="welcome-text">¡Bienvenido!</div>
@@ -46,10 +37,8 @@
         <div id="modo-info" style="display:none;">MODO: --</div>
     </div>
 
-    <!-- Botón de Conexión -->
     <button id="btn-connect" class="btn btn-blue">🔌 Conectar Dispositivo USB</button>
 
-    <!-- Estado y Controles Operativos -->
     <div id="status-text" style="display:none;">Sincronizando...</div>
 
     <div id="controls" style="display:none;">
@@ -57,7 +46,6 @@
         <button id="btn-cerrar" class="btn btn-red">ACCIONAR CIERRE</button>
     </div>
 
-    <!-- Teclado Numérico para OTP -->
     <div id="keypad-container" class="keypad">
         <button class="key" data-val="1">1</button>
         <button class="key" data-val="2">2</button>
@@ -73,7 +61,7 @@
         <button class="key" style="background:#e6ffe6; color:#2e7d32;" id="btn-enviar">OK</button>
     </div>
 
-    <!-- Consola de depuración -->
+    <!-- Ahora la consola mostrará todo el tráfico en bruto -->
     <div id="terminal"></div>
 </div>
 
@@ -113,17 +101,13 @@
     document.getElementById('btn-enviar').addEventListener('click', () => sendCmd('D'));
 
     function processSerialLine(line) {
-        log("> " + line);
-
-        // 1. Detección de arranque, cliente y modo de operación
-        if (line.includes("[INICIO]")) {
+        if(line.includes("[INICIO]")) {
             statusText.style.display = 'block';
             controls.style.display = 'block';
             keypadContainer.style.display = 'none';
             statusText.innerText = "Sistema Listo";
             statusText.style.color = "#333";
             
-            // Extraer el cliente y el modo (Ej. "Cliente: SISTEMAS - SEPSA | Modo: QUINTA")
             if (line.includes("Cliente:")) {
                 let partesCliente = line.split("Cliente: ")[1].split(" | ")[0];
                 clienteInfo.innerText = "UNIDAD: " + partesCliente;
@@ -138,7 +122,6 @@
             }
         }
 
-        // 2. Se genera la clave y pasamos automático a OTP
         if (line.includes("[CLAVE]")) {
             const clave = line.split("]")[1].trim();
             statusText.innerText = `Clave Generada: ${clave}`;
@@ -146,26 +129,22 @@
             setTimeout(() => sendCmd('B'), 500); 
         }
 
-        // 3. Activar teclado OTP
         if (line.includes("[INPUT_OTP]")) {
             statusText.innerText = "Ingrese Clave Dinámica (OTP)";
             keypadContainer.style.display = 'grid';
         }
 
-        // 4. Mostrar progreso de OTP
         if (line.includes("[INPUT]")) {
             const pass = line.split("]")[1].trim();
             statusText.innerText = `OTP: ${pass}`;
         }
 
-        // 5. Exito
         if (line.includes("[EXITO]")) {
             statusText.style.color = "#28a745";
             statusText.innerText = line.split("]")[1].trim();
             keypadContainer.style.display = 'none';
         }
         
-        // 6. Errores o Bloqueos
         if (line.includes("[ERROR") || line.includes("[BLOQUEO]")) {
             statusText.style.color = "#dc3545";
             statusText.innerText = line.split("]")[1].trim();
@@ -176,8 +155,17 @@
         try {
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 9600 });
-            writer = port.writable.getWriter();
             
+            // TRUCO DE IGNICIÓN: Apaga y prende la señal DTR para obligar a la placa a reiniciarse y saludar
+            try {
+                await port.setSignals({ dataTerminalReady: false });
+                await new Promise(r => setTimeout(r, 150));
+                await port.setSignals({ dataTerminalReady: true });
+            } catch(e) {
+                log("Aviso: Señales DTR no soportadas en este dispositivo.");
+            }
+
+            writer = port.writable.getWriter();
             const decoder = new TextDecoderStream();
             const inputDone = port.readable.pipeTo(decoder.writable);
             const inputStream = decoder.readable;
@@ -185,18 +173,24 @@
 
             btnConnect.style.display = 'none';
             statusText.style.display = 'block';
-            log("Conectado. Leyendo unidad...");
+            log("Conectado. Forzando reinicio de unidad...");
 
             let buffer = "";
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) { reader.releaseLock(); break; }
                 if (value) {
+                    // IMPRIMIR DATOS CRUDOS (En gris) PARA DIAGNOSTICO
+                    log("<span style='color:#888;'>[RECIBIENDO]: " + value.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + "</span>");
+                    
                     buffer += value;
                     let lines = buffer.split('\n');
                     buffer = lines.pop(); 
                     for (let line of lines) {
-                        if(line.trim() !== "") processSerialLine(line.trim());
+                        if(line.trim() !== "") {
+                            log("> " + line.trim());
+                            processSerialLine(line.trim());
+                        }
                     }
                 }
             }
